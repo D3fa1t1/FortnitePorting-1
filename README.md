@@ -52,6 +52,7 @@ FortnitePorting has many types of cosmetics and files to export
 * Pets
 * Gliders
 * Pickaxes
+* Emotes
 
 **Name Only**:
 * Vehicles

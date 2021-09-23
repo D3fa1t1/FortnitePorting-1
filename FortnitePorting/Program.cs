@@ -7,7 +7,7 @@ using CUE4Parse.FileProvider;
 using CUE4Parse.MappingsProvider;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Vfs;
-using FortnitePorting.Cosmetics;
+using FortnitePorting.Types;
 using FortnitePorting.Utils;
 using Newtonsoft.Json;
 
@@ -30,8 +30,8 @@ namespace FortnitePorting
             
             if (args[0] == "-fill")
             {
-                UpdateKeysMappings.UpdateKeys();
-                UpdateKeysMappings.UpdateMappings();
+                BenbotApi.UpdateKeys();
+                BenbotApi.UpdateMappings();
                 PromptExit(0);
             }
             
@@ -59,7 +59,7 @@ namespace FortnitePorting
         {
             Provider = new DefaultFileProvider(_config.PaksDirectory, SearchOption.TopDirectoryOnly, true)
             {
-                MappingsContainer = new FileUsmapTypeMappingsProvider(UpdateKeysMappings.GetNewestUsmap(MappingsPath)),
+                MappingsContainer = new FileUsmapTypeMappingsProvider(GetNewestUsmap(MappingsPath)),
             };
             Provider.Initialize();
             Provider.UnloadAllVfs();
@@ -76,6 +76,23 @@ namespace FortnitePorting
             Console.WriteLine("Press any button to exit...");
             Console.ReadLine();
             Environment.Exit(code);
+        }
+        
+        private static string GetNewestUsmap(string mappingsFolder)
+        {
+            var directory = new DirectoryInfo(mappingsFolder);
+            var selectedFilePath = String.Empty;
+            var modifiedTime = long.MinValue;
+            foreach (var file in directory.GetFiles())
+            {
+                if (file.Name.EndsWith(".usmap") && file.LastWriteTime.ToFileTimeUtc() > modifiedTime)
+                {
+                    selectedFilePath = file.FullName;
+                    modifiedTime = file.LastWriteTime.ToFileTimeUtc();
+                }
+            }
+
+            return selectedFilePath;
         }
         public class Config
         {

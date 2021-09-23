@@ -6,12 +6,15 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using CUE4Parse.Utils;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using static FortnitePorting.Program;
 using static FortnitePorting.Utils.SimpleLogger;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace FortnitePorting.Utils
 {
-    public static class UpdateKeysMappings
+    public static class BenbotApi
     {
         private static WebClient client = new WebClient();
             
@@ -23,7 +26,7 @@ namespace FortnitePorting.Utils
             Logger.Log($"Getting Keys for {response.version}");
             
             config.MainKey = response.mainKey;
-            while (config.DynamicKeys.Count != 0) config.DynamicKeys.RemoveAt(0);
+            config.DynamicKeys.Clear();
 
             foreach (var newEntry in response.dynamicKeys.Select(entry => new Config.KeyEntry {FileName = entry.fileName.Replace("FortniteGame/Content/Paks/", ""), Key = entry.key }))
             {
@@ -33,7 +36,6 @@ namespace FortnitePorting.Utils
             File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true}));
             Logger.Log($"Filled {config.DynamicKeys.Count} Keys");
         }
-
         private class Aes
         {
             public string version { get; set; }
@@ -88,21 +90,30 @@ namespace FortnitePorting.Utils
             }
         }
         
-        public static string GetNewestUsmap(string mappingsFolder)
+        public enum EBackendType
         {
-            DirectoryInfo directory = new DirectoryInfo(mappingsFolder);
-            string selectedFilePath = String.Empty;
-            long modifiedTime = long.MinValue;
-            foreach (var file in directory.GetFiles())
-            {
-                if (file.Name.EndsWith(".usmap") && file.LastWriteTime.ToFileTimeUtc() > modifiedTime)
-                {
-                    selectedFilePath = file.FullName;
-                    modifiedTime = file.LastWriteTime.ToFileTimeUtc();
-                }
-            }
+            AthenaCharacter,
+            AthenaBackpack,
+            AthenaPet,
+            AthenaGlider,
+            AthenaPickaxe,
+            AthenaDance
+        }
+        public static string GetCosmeticPath(EBackendType backendType, string Input)
+        {
+            var response = client.DownloadString(
+                "https://benbot.app/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=full" +
+                $"&name={Input.Replace(" ", "%20")}" +
+                $"&backendType={backendType.ToString()}");
+            
+            if (response == "[]") Logger.Log("Cosmetic does not exist, exiting", ELogLevel.Critical);
 
-            return selectedFilePath;
+            return JsonConvert.DeserializeObject<Cosmetic[]>(response)?[0].path;
+        }
+
+        private class Cosmetic
+        {
+            public string path { get; set; }
         }
     }
 }
